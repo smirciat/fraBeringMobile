@@ -1,0 +1,23 @@
+<div flex layout="row">
+  <sidebar layout="row"></sidebar>
+  <div flex layout="column" id="content">
+    <div layout="row" flex="5"></div>
+    <div layout="row">
+      <md-input-container class="bering" flex>
+        <label>Creator</label>
+        <input ng-model="notifications.newNotification.creator">
+      </md-input-container>
+      <md-input-container class="bering" flex>
+        <label>Title</label>
+        <input ng-model="notifications.newNotification.title">
+      </md-input-container>
+      <md-button class="md-raised md-primary" flex ng-click="notifications.submit($event)">Submit</md-button>
+    </div>
+    <div layout="row" flex>
+      <md-input-container class="bering" flex>
+        <label>Notification</label>
+        <textarea ng-model="notifications.newNotification.notification">
+      </md-input-container>
+    </div>
+  </div>
+</div>
