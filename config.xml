@@ -44,8 +44,8 @@
         <icon height="72" src="resources/ios/icon/icon-72.png" width="72" />
         <icon height="144" src="resources/ios/icon/icon-144.png" width="144" />
         <icon height="76" src="resources/ios/icon/icon-76.png" width="76" />
-        <icon height="152" src="resources/ios/icon/icon-152" width="152" />
-        <icon height="167" src="resources/ios/icon/icon-167" width="167" />
+        <icon height="152" src="resources/ios/icon/icon-152.png" width="152" />
+        <icon height="167" src="resources/ios/icon/icon-167.png" width="167" />
         <icon height="29" src="resources/ios/icon/icon-29.png" width="29" />
         <icon height="58" src="resources/ios/icon/icon-58.png" width="58" />
         <icon height="87" src="resources/ios/icon/icon-87.png" width="87" />
