@@ -3,7 +3,7 @@
 angular.module('workspaceApp')
   .controller('MainController',function($http, $scope,$mdDialog,$mdSidenav,$timeout,appConfig,$interval,moment) {
       var self=this;
-      self.tempPilot={name:"hi"};
+      self.tempPilot={name:""};
       if (window.localStorage.getItem('pilot')!==null&&window.localStorage.getItem('pilot')!=='undefined') self.tempPilot=JSON.parse(window.localStorage.getItem('pilot'));
       self.$http = $http;
       self.interval=$interval;
@@ -37,15 +37,29 @@ angular.module('workspaceApp')
             });
         });
       }
-    }
+    };
+    
+    self.initPilots=function(){
+      self.$http.get(self.api+'/api/pilots/mobile')
+        .then(function(response) {
+          self.pilots = response.data;
+          self.timeout(function(){
+            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
+          },1000);
+          window.localStorage.setItem('pilots',JSON.stringify(self.pilots));
+        },function(response){
+          self.pilots=JSON.parse(window.localStorage.getItem('pilots'));
+          self.timeout(function(){
+            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
+          },1000);
+        });
+    };
     
     self.initAssessment=function(){
       
       var airports,pilot,flight,equipment,color,night,times;
       if (self.assessment) {
-        var tempPilot="";
-        if (window.localStorage.getItem('pilot')!==null&&window.localStorage.getItem('pilot')!=='undefined') tempPilot=window.localStorage.getItem('pilot');
-        pilot=self.assessment.pilot||tempPilot;
+        pilot=self.assessment.pilot||"";
         flight=self.assessment.flight||"";
         airports=self.assessment.airports||[];
         equipment=self.assessment.equipment||{id:1,name:"Caravan",wind:35,temp:-50};
@@ -57,6 +71,7 @@ angular.module('workspaceApp')
       self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,
         windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilot:pilot,flight:flight,equipment:equipment,color:color
       };
+      if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.initPilots();
     }
     
     self.initNight=function(airport,index){
@@ -125,7 +140,10 @@ angular.module('workspaceApp')
         self.$http.post(self.api+'/api/assessments/mobile/lookup',{airport:airport}).then(function(res){
           if (res.data.length>0){
             var i = res.data[0].airports.indexOf(airport);
-            if (i>-1) self.assessment.runwayConditions[index]=res.data[0].runwayConditions[i];
+            if (i>-1) {
+             if (res.data[0].runwayConditions[i]) self.assessment.runwayConditions[index]=res.data[0].runwayConditions[i];
+              else self.assessment.runwayConditions[index]=5;
+            }
             else self.assessment.runwayConditions[index]=5;
           }
           else self.assessment.runwayConditions[index]=5;
@@ -172,19 +190,7 @@ angular.module('workspaceApp')
           self.flights=JSON.parse(window.localStorage.getItem('flights'));
         });
         
-      self.$http.get(self.api+'/api/pilots/mobile')
-        .then(function(response) {
-          self.pilots = response.data;
-          self.timeout(function(){
-            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
-          },0);
-          window.localStorage.setItem('pilots',JSON.stringify(self.pilots));
-        },function(response){
-          self.pilots=JSON.parse(window.localStorage.getItem('pilots'));
-          self.timeout(function(){
-            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
-          },0);
-        });
+      self.initPilots();
         
       self.$http.get(self.api+'/api/airportRequirements/mobile')
         .then(function(response) {
@@ -468,10 +474,17 @@ angular.module('workspaceApp')
     self.submit=function(ev){
       
       self.assessment.equipment=self.assessment.equipment.name;
-      if (self.assessment.pilot===""||self.assessment.flight==="") {
+      if (!self.assessment||
+             !self.assessment.pilot||
+             !self.assessment.pilot.name||
+             !self.assessment.flight||
+             !self.assessment.equipment||
+             self.assessment.pilot.name===""||
+             self.assessment.flight===""||
+             self.assessment.equipment==="") {
         var alert = self.mdDialog.alert({
           title: 'Attention',
-          textContent: 'You need to enter a pilot and a flight number at the top of the page.',
+          textContent: 'You need to enter a pilot, an aircraft, and a flight number at the top of the page.',
           ok: 'Close'
         });
             
@@ -507,17 +520,21 @@ angular.module('workspaceApp')
     }
     
     self.checkNotifications=function(ev){
-      if (self.assessment.pilot===undefined) return;
+      if (!self.assessment.pilot) return;
       self.tempPilot=angular.copy(self.assessment.pilot);
       window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilot));
       self.$http.post(self.api+'/api/notifications/mobile/pilot',{pilot:self.assessment.pilot.name}).then(function(response){
+        console.log(response.data);
         var notifications=response.data;
         var length=notifications.length;
         var count=0;
         var confirm=[];
         notifications.forEach(function(notification,index){
           confirm[index] = self.mdDialog.confirm({clickOutsideToClose:true,multiple:true})
-                .title('Notification from ' + self.moment(notifications[index].createdAt).format('ddd, MMM Do YYYY, h:mm:ss a') + ' created by ' + notifications[index].creator)
+                .title(notifications[index].title
+                    + '   :::   '
+                    + 'Notification from ' + notifications[index].creator + ', created on ' 
+                    + self.moment(notifications[index].createdAt).format('ddd, MMM Do YYYY, h:mm:ss a'))
                 .textContent(notifications[index].notification)
                 .ariaLabel('Notification')
                 .targetEvent(ev)
@@ -527,7 +544,7 @@ angular.module('workspaceApp')
         
         var showAnother = function(){
           if (length>0) self.mdDialog.show(confirm[count]).then(function() {
-            notifications[count].notified.push(self.assessment.pilot);
+            notifications[count].notified.push(self.assessment.pilot.name);
             self.$http.put(self.api+'/api/notifications/mobile/'+notifications[count]._id, notifications[count]);
             count++;
             length--;

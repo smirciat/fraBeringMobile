@@ -1,8 +1,9 @@
 'use strict';
 
 angular.module('workspaceApp')
-  .controller('NotificationsController',function($http,$mdDialog,$interval) {
+  .controller('NotificationsController',function($http,$mdDialog,$interval,appConfig) {
     var self=this;
+    self.api=appConfig.api;
     self.http=$http;
     self.mdDialog=$mdDialog;
     self.newNotification={creator:"",title:"",notification:""};
@@ -26,7 +27,7 @@ angular.module('workspaceApp')
     else {
       self.newNotification.createdAt=new Date();
       self.newNotification.notified=[self.newNotification.creator];
-      self.http.post('/api/notifications',self.newNotification).then(function(response){
+      self.http.post(self.api+'/api/notifications/mobile',self.newNotification).then(function(response){
         self.newNotification={creator:"",title:"",notification:""};
       });
     }
@@ -37,7 +38,7 @@ angular.module('workspaceApp')
       window.localStorage.setItem( 'notifications', JSON.stringify(self.notifications) );
       if (Array.isArray(self.notifications)) {
         self.notifications.forEach(function(notification,index){
-          self.$http.post('/api/notifications', notification)
+          self.$http.post(self.api+'/api/notifications/mobile', notification)
             .then(function(response){//success
               index=self.notifications.indexOf(notification);
               self.notifications.splice(index,1);
