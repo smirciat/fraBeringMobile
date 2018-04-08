@@ -1,10 +1,11 @@
 'use strict';
 
 angular.module('workspaceApp')
-  .controller('LoginController', function (Auth, $state,$timeout,Modal) {
+  .controller('LoginController', function (Auth, $state,$timeout,Modal,$mdSidenav) {
     this.user = {};
     this.object={};
     this.errors = {};
+    this.mdSidenav=$mdSidenav;
     this.submitted = false;
     var self = this;
     this.user.email = window.localStorage.getItem( 'email' )||"";
@@ -40,5 +41,9 @@ angular.module('workspaceApp')
         });
       }
     };
+    
+    self.toggleMenu=function(){
+      self.mdSidenav('left').toggle();
+    }
 });
 

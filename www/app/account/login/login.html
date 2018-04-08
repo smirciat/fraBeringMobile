@@ -1,7 +1,22 @@
 <div flex layout="row">
   <sidebar layout="row"></sidebar>
   <div flex layout="column" id="content">
-    <div class="row space">
+    <div ng-if="main.pixelRatio(1)" layout="row" flex="5">
+      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+        Menu
+      </a>
+    </div>
+    <div ng-if="main.pixelRatio(2)" layout="row" flex="2">
+      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+        Menu
+      </a>
+    </div>
+    <div ng-if="main.pixelRatio(3)" layout="row" flex="1">
+      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+        Menu
+      </a>
+    </div>
+    <div flex class="row space">
       <div class="col-sm-12">
         <h1>Login</h1>
         </div>
