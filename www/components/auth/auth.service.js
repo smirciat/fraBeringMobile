@@ -106,10 +106,10 @@ function AuthService($location, $http, $cookies, $q, appConfig, Util, User) {
 
         var value = currentUser.hasOwnProperty('$promise') ? currentUser.$promise : currentUser;
         return $q.when(value)
-          .then(user => {
+          .then(function(user) {
             safeCb(callback)(user);
             return user;
-          }, () => {
+          }, function() {
             safeCb(callback)({});
             return {};
           });

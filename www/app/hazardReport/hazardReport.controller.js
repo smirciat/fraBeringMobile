@@ -1,10 +1,12 @@
 'use strict';
 
 angular.module('workspaceApp')
-  .controller('HazardReportController',function($http,$mdDialog,$mdSidenav,$interval) {
+  .controller('HazardReportController',function($http,$mdDialog,$mdSidenav,$interval,appConfig) {
     var self=this;
     self.mdDialog=$mdDialog;
     self.mdSidenav=$mdSidenav;
+    self.appConfig=appConfig;
+    self.api=appConfig.api;
     self.http=$http;
     self.report={name:"",base:"",location:"",report:""};
     self.bases=['Nome','Kotzebue','Unalakleet'];
@@ -27,7 +29,7 @@ angular.module('workspaceApp')
     }
     else {
       self.report.date=new Date();
-      self.http.post('/api/hazardReports',self.report).then(function(response){
+      self.http.post(self.api+'/api/hazardReports/mobile',self.report).then(function(response){
         self.report={name:"",base:"",location:"",report:""};
       },function(response){
         self.hazardReports.push(self.report);
@@ -42,7 +44,7 @@ angular.module('workspaceApp')
       window.localStorage.setItem( 'hazardReports', JSON.stringify(self.hazardReports) );
       if (Array.isArray(self.hazardReports)) {
         self.hazardReports.forEach(function(hazard,index){
-          self.$http.post('/api/hazardReports', hazard)
+          self.http.post(self.api+'/api/hazardReports/mobile', hazard)
             .then(function(response){//success
               index=self.hazardReports.indexOf(hazard);
               self.hazardReports.splice(index,1);

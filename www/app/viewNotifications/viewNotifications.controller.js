@@ -1,16 +1,17 @@
 'use strict';
 
 angular.module('workspaceApp')
-  .controller('ViewNotificationsController',function($http,$mdDialog,$mdSidenav,Auth) {
+  .controller('ViewNotificationsController',function($http,$mdDialog,$mdSidenav,Auth,appConfig) {
     var self=this;
     self.Auth=Auth;
     self.pilotList=[];
     self.mdDialog=$mdDialog;
     self.mdSidenav=$mdSidenav;
+    self.api=appConfig.api;
     self.http=$http;
-    $http.get('/api/pilots').then(function(response){
+    $http.get(self.api+'/api/pilots/mobile').then(function(response){
       self.pilots=response.data;
-      $http.get('/api/notifications').then(function(response){
+      $http.get(self.api+'/api/notifications/mobile').then(function(response){
         self.notifications=response.data;
         self.notifications.forEach(function(notification){
           if (notification.notified) {
