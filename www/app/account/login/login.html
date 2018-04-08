@@ -1,18 +1,18 @@
 <div flex layout="row">
   <sidebar layout="row"></sidebar>
   <div flex layout="column" id="content">
-    <div ng-if="main.pixelRatio(1)" layout="row" flex="5">
-      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+    <div ng-if="vm.pixelRatio(1)" layout="row" flex="5">
+      <a hide-gt-sm href="#" ng-click="vm.toggleMenu()" class="box-shadow-menu">
         Menu
       </a>
     </div>
-    <div ng-if="main.pixelRatio(2)" layout="row" flex="2">
-      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+    <div ng-if="vm.pixelRatio(2)" layout="row" flex="2">
+      <a hide-gt-sm href="#" ng-click="vm.toggleMenu()" class="box-shadow-menu">
         Menu
       </a>
     </div>
-    <div ng-if="main.pixelRatio(3)" layout="row" flex="1">
-      <a hide-gt-sm href="#" ng-click="login.toggleMenu()" class="box-shadow-menu">
+    <div ng-if="vm.pixelRatio(3)" layout="row" flex="1">
+      <a hide-gt-sm href="#" ng-click="vm.toggleMenu()" class="box-shadow-menu">
         Menu
       </a>
     </div>

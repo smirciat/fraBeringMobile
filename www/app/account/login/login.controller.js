@@ -44,6 +44,13 @@ angular.module('workspaceApp')
     
     self.toggleMenu=function(){
       self.mdSidenav('left').toggle();
-    }
+    };
+    
+    self.pixelRatio=function(ratio){
+      if (Math.floor(window.devicePixelRatio)===ratio) return true;
+      if (window.devicePixelRatio>3&&ratio===3) return true;
+      if (window.devicePixelRatio<1&&ratio===1) return true;
+      return false;
+    };
 });
 
