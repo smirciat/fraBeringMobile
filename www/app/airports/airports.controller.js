@@ -1,15 +1,16 @@
 'use strict';
 
 angular.module('workspaceApp')
-  .controller('AirportsController',function($http) {
+  .controller('AirportsController',function($http,appConfig) {
     var self=this;
+    self.api=appConfig.api;
     self.http=$http;
     self.newAirport={};
     
   
   self.init=function(){
     
-    self.http.get('/api/airportRequirements').then(function(response){
+    self.http.get(self.api+'/api/airportRequirements/mobile').then(function(response){
       self.airports=response.data.sort(function(a,b){
         return a.name.localeCompare(b.name);
       });
@@ -37,13 +38,13 @@ angular.module('workspaceApp')
     if (airport.visibilityRequirementString) airport.visibilityRequirement = JSON.parse(airport.visibilityRequirementString);
     if (airport.windRequirementString) airport.windRequirement = JSON.parse(airport.windRequirementString);
     if (airport._id){
-      self.http.put('/api/airportRequirements/' + airport._id,airport).then(function(){
+      self.http.put(self.api+'/api/airportRequirements/mobile' + airport._id,airport).then(function(){
         self.airports[self.index]=angular.copy(airport);
         self.newAirport={};
       });
     }
     else {
-      self.http.post('/api/airportRequirements',airport).then(function(response){
+      self.http.post(self.api+'/api/airportRequirements/mobile',airport).then(function(response){
         self.airports[self.airports.length]=response.data;
         self.newAirport={};
       });
