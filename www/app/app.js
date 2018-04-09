@@ -6,7 +6,7 @@ window.onerror = function(errorMsg,url,lineNumber){
 
 angular.module('workspaceApp', ['ionic','ngCordova','workspaceApp.auth', 'workspaceApp.admin', 'workspaceApp.constants',
     'ngCookies', 'ngResource', 'ngSanitize',  'ngMaterial', 'ui.router','ui.select', 'ui.bootstrap',
-    'validation.match','angularMoment','AngularPrint','ngAnimate','ngTouch'
+    'validation.match','angularMoment','AngularPrint','ngAnimate'
   ])
 .run(function($ionicPlatform,$state,$timeout) {
      $ionicPlatform.ready(function() {
