@@ -342,27 +342,28 @@ angular.module('workspaceApp')
     }
     
     self.addAirport=function(ev){
-      
-      var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
-        .parent(angular.element(document.body))
-        .title('What is the new airport?')
-        .textContent('Enter a four letter airport code')
-        .placeholder('Airport')
-        .ariaLabel('Airport')
-        .initialValue('')
-        .targetEvent(ev)
-        .required(true)
-        .ok('OK')
-        .cancel('Cancel');
-          
-      self.mdDialog.show(confirm).then(function(result) {
-        if (result.length===4){
-          self.assessment.airports.push(result);
-          self.assessment.color.push('md-green');
-          self.assessment.times.push(self.moment().format('HH:mm').toString());
-          self.initAirport(result,self.assessment.airports.length-1,0);
-        }
-      });
+      self.timeout(function(){
+        var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+          .parent(angular.element(document.body))
+          .title('What is the new airport?')
+          .textContent('Enter a four letter airport code')
+          .placeholder('Airport')
+          .ariaLabel('Airport')
+          .initialValue('')
+          .targetEvent(ev)
+          .required(true)
+          .ok('OK')
+          .cancel('Cancel');
+            
+        self.mdDialog.show(confirm).then(function(result) {
+          if (result.length===4){
+            self.assessment.airports.push(result);
+            self.assessment.color.push('md-green');
+            self.assessment.times.push(self.moment().format('HH:mm').toString());
+            self.initAirport(result,self.assessment.airports.length-1,0);
+          }
+        });
+      },400);
     }
     
     self.openChangeMenu=function(mdMenu,ev){
