@@ -9,32 +9,61 @@ angular.module('workspaceApp')
     self.mdSidenav=$mdSidenav;
     self.api=appConfig.api;
     self.http=$http;
-    $http.get(self.api+'/api/pilots/mobile').then(function(response){
-      self.pilots=response.data;
-      $http.get(self.api+'/api/notifications/mobile').then(function(response){
-        self.notifications=response.data;
-        self.notifications.forEach(function(notification){
-          if (notification.notified) {
-            notification.notified.sort(function(a,b){
-              return a.localeCompare(b);
-            });
-            notification.notifiedString = notification.notified.toString();
-            notification.notNotifiedWhole = self.pilots.filter(function(pilot){
-              return notification.notified.indexOf(pilot.name)<0;
-            });
-            notification.notNotified=[];
-            notification.notNotifiedWhole.forEach(function(pilot){
-              notification.notNotified.push(pilot.name);
-            });
-            notification.notNotified.sort(function(a,b){
-              return a.localeCompare(b);
-            });
-            notification.notNotifiedString=notification.notNotified.toString();
-          }
+    self.apiPassword="";
+      
+    self.promptForPassword=function(){
+      var confirm = self.mdDialog.prompt()
+          .parent(angular.element(document.body))
+          .title('What is the passwordr?')
+          .textContent('You only need to enter this once per device.  The device will remember until the password is changed.')
+          .placeholder('password')
+          .ariaLabel('password')
+          .initialValue('')
+          .required(true)
+          .ok('Store')
+          .cancel('Cancel');
+          
+      self.mdDialog.show(confirm).then(function(result) {
+        window.localStorage.setItem('api',result);
+        self.apiPassword=result;
+        self.init();
+      });
+    };
+    
+    if (window.localStorage.getItem( 'api' )===null||window.localStorage.getItem( 'api' )==="undefined"){
+      self.promptForPassword();
+    }
+    else self.apiPassword=window.localStorage.getItem( 'api' );
+      
+    self.init=function(){
+      $http.get(self.api+'/api/pilots/mobile').then(function(response){
+        self.pilots=response.data;
+        $http.post(self.api+'/api/notifications/mobile/secret',{password:self.apiPassword}).then(function(response){
+          self.notifications=response.data;
+          self.notifications.forEach(function(notification){
+            if (notification.notified) {
+              notification.notified.sort(function(a,b){
+                return a.localeCompare(b);
+              });
+              notification.notifiedString = notification.notified.toString();
+              notification.notNotifiedWhole = self.pilots.filter(function(pilot){
+                return notification.notified.indexOf(pilot.name)<0;
+              });
+              notification.notNotified=[];
+              notification.notNotifiedWhole.forEach(function(pilot){
+                notification.notNotified.push(pilot.name);
+              });
+              notification.notNotified.sort(function(a,b){
+                return a.localeCompare(b);
+              });
+              notification.notNotifiedString=notification.notNotified.toString();
+            }
+          });
+        },function(response){
+          if (response.status===501) self.promptForPassword();
         });
       });
-    });
-    
+    };
   
   
   self.archive=function(event,notification){
@@ -101,7 +130,8 @@ angular.module('workspaceApp')
       
       self.mdSidenav('left').toggle();
     };
-  
+    
+  self.init();
 }
 
 );

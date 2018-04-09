@@ -15,6 +15,30 @@ angular.module('workspaceApp')
       self.moment=moment;
       self.api=appConfig.api;
       self.localAssessments=[];
+      self.apiPassword="";
+      
+      self.promptForPassword=function(){
+        var confirm = self.mdDialog.prompt()
+            .parent(angular.element(document.body))
+            .title('What is the passwordr?')
+            .textContent('You only need to enter this once per device.  The device will remember until the password is changed.')
+            .placeholder('password')
+            .ariaLabel('password')
+            .initialValue('')
+            .required(true)
+            .ok('Store')
+            .cancel('Cancel');
+            
+        self.mdDialog.show(confirm).then(function(result) {
+          window.localStorage.setItem('api',result);
+          self.apiPassword=result;
+        });
+      };
+      
+      if (window.localStorage.getItem( 'api' )===null||window.localStorage.getItem( 'api' )==="undefined"){
+        self.promptForPassword();
+      }
+      else self.apiPassword=window.localStorage.getItem( 'api' );
       if (window.localStorage.getItem( 'assessments' )===null||window.localStorage.getItem( 'assessments' )==="undefined"){
         window.localStorage.setItem('assessments',JSON.stringify([]));
       }
@@ -209,46 +233,62 @@ angular.module('workspaceApp')
     self.changeFlight=function(ev) {
       self.timeout(function(){
       
-      if (!self.assessment.flight||self.assessment.flight==="") return;
-    // Appending dialog to document.body to cover sidenav in docs app
-    // Modal dialogs should fully cover application
-    // to prevent interaction outside of dialog
-      if (self.assessment.flight==="Extra") {
-        //unlisted flight number
-        
-        var confirm = self.mdDialog.prompt()
-            .parent(angular.element(document.body))
-            .title('What is the new flight number?')
-            .textContent('Enter a three or four digit flight number.')
-            .placeholder('Flight Number')
-            .ariaLabel('Flight Number')
-            .initialValue('')
-            .targetEvent(ev)
-            .required(true)
-            .ok('OK')
-            .cancel('Cancel');
-            
-        self.mdDialog.show(confirm).then(function(result) {
-          var newFlight={flightNum:result};
-          var flightArr=self.flights.filter(function(flight){
-            return flight.flightNum===result.slice(-3);
+        if (!self.assessment.flight||self.assessment.flight==="") return;
+      // Appending dialog to document.body to cover sidenav in docs app
+      // Modal dialogs should fully cover application
+      // to prevent interaction outside of dialog
+        if (self.assessment.flight==="Extra") {
+          //unlisted flight number
+          
+          var confirm = self.mdDialog.prompt()
+              .parent(angular.element(document.body))
+              .title('What is the new flight number?')
+              .textContent('Enter a three or four digit flight number.')
+              .placeholder('Flight Number')
+              .ariaLabel('Flight Number')
+              .initialValue('')
+              .targetEvent(ev)
+              .required(true)
+              .ok('OK')
+              .cancel('Cancel');
+              
+          self.mdDialog.show(confirm).then(function(result) {
+            var newFlight={flightNum:result};
+            var flightArr=self.flights.filter(function(flight){
+              return flight.flightNum===result.slice(-3);
+            });
+            if (flightArr.length>0) {
+              newFlight=JSON.parse(JSON.stringify(flightArr[0]));
+              newFlight.flightNum=result;
+              self.assessment.times=flightArr[0].departTimes;
+            }
+            else {
+              newFlight={};
+              newFlight.flightNum=result;
+              if (result.substring(0,1)==='5') newFlight.airports=['PAOT'];
+              else if (result.substring(0,1)==='7') newFlight.airports=['PAOM'];
+                  else newFlight.airports=[];
+              newFlight.departTimes=[self.moment().format('HH:mm').toString()];
+            }
+            self.flights.push(newFlight);
+            self.assessment.flight =  result;
+            flightArr = self.flights.filter(function(flt){
+              return self.assessment.flight===flt.flightNum;
+            });
+            if (flightArr.length>0) {
+              self.assessment.airports=JSON.parse(JSON.stringify(flightArr[0].airports));
+              self.assessment.times=flightArr[0].departTimes;
+            }
+            self.initAssessment();
+            self.assessment.airports.forEach(function(airport,index){
+              self.initAirport(airport,index,0);
+            });
+          }, function() {
+            self.assessment.flight = "";
           });
-          if (flightArr.length>0) {
-            newFlight=JSON.parse(JSON.stringify(flightArr[0]));
-            newFlight.flightNum=result;
-            self.assessment.times=flightArr[0].departTimes;
-          }
-          else {
-            newFlight={};
-            newFlight.flightNum=result;
-            if (result.substring(0,1)==='5') newFlight.airports=['PAOT'];
-            else if (result.substring(0,1)==='7') newFlight.airports=['PAOM'];
-                else newFlight.airports=[];
-            newFlight.departTimes=[self.moment().format('HH:mm').toString()];
-          }
-          self.flights.push(newFlight);
-          self.assessment.flight =  result;
-          flightArr = self.flights.filter(function(flt){
+        }
+        else {
+          var flightArr = self.flights.filter(function(flt){
             return self.assessment.flight===flt.flightNum;
           });
           if (flightArr.length>0) {
@@ -259,93 +299,99 @@ angular.module('workspaceApp')
           self.assessment.airports.forEach(function(airport,index){
             self.initAirport(airport,index,0);
           });
-        }, function() {
-          self.assessment.flight = "";
-        });
-      }
-      else {
-        var flightArr = self.flights.filter(function(flt){
-          return self.assessment.flight===flt.flightNum;
-        });
-        if (flightArr.length>0) {
-          self.assessment.airports=JSON.parse(JSON.stringify(flightArr[0].airports));
-          self.assessment.times=flightArr[0].departTimes;
         }
-        self.initAssessment();
-        self.assessment.airports.forEach(function(airport,index){
-          self.initAirport(airport,index,0);
-        });
-      }
       },400);
       
-    }
+    };
     
     self.changeAirport=function(ev,index){
       self.timeout(function(){
       
-      var time=self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
-        .parent(angular.element(document.body))
-        .title('What is the new departure time for self airport?')
-        .textContent('Enter a departure time in 24 hour time format')
-        .placeholder('16:00')
-        .ariaLabel('Time')
-        .initialValue(self.assessment.times[index])
-        .targetEvent(ev)
-        .required(true)
-        .ok('Update Depart Time')
-        .cancel('Change Airport or Cancel');
-        
-      var airport = self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
-        .parent(angular.element(document.body))
-        .title('What is the new airport?')
-        .textContent('Enter a four letter airport code')
-        .placeholder('Airport')
-        .ariaLabel('Airport')
-        .initialValue('')
-        .targetEvent(ev)
-        .required(true)
-        .ok('Update Airport Code')
-        .cancel('Cancel');
+        var time=self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
+          .parent(angular.element(document.body))
+          .title('What is the new departure time for self airport?')
+          .textContent('Enter a departure time in 24 hour time format')
+          .placeholder('16:00')
+          .ariaLabel('Time')
+          .initialValue(self.assessment.times[index])
+          .targetEvent(ev)
+          .required(true)
+          .ok('Update Depart Time')
+          .cancel('Change Airport or Cancel');
           
-      self.mdDialog.show(time).then(function(result) {
-        if (result!=="") {
-          self.assessment.times[index] = result;
-          self.initNight(self.assessment.airports[index],index);
-        }
-      },function(){
-        self.mdDialog.show(airport).then(function(result) {
-          if (result.length===4){
-            self.assessment.airports[index]=result;
-            self.initAirport(result,index,0);
+        var airport = self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
+          .parent(angular.element(document.body))
+          .title('What is the new airport?')
+          .textContent('Enter a four letter airport code')
+          .placeholder('Airport')
+          .ariaLabel('Airport')
+          .initialValue('')
+          .targetEvent(ev)
+          .required(true)
+          .ok('Update Airport Code')
+          .cancel('Cancel');
+            
+        self.mdDialog.show(time).then(function(result) {
+          if (result!=="") {
+            self.assessment.times[index] = result;
+            self.initNight(self.assessment.airports[index],index);
           }
+        },function(){
+          self.mdDialog.show(airport).then(function(result) {
+            if (result.length===4){
+              self.assessment.airports[index]=result;
+              self.initAirport(result,index,0);
+            }
+          });
         });
-      });
       },400);
     }
     
     self.changeParam=function(ev,index,param,title){
       self.timeout(function(){
       
-      var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
-        .parent(angular.element(document.body))
-        .title('What is the ' + title + ' for ' + self.assessment.airports[index]  + '?')
-        .textContent('Enter ' + title)
-        .placeholder(title)
-        .ariaLabel(title)
-        .initialValue('')
-        .targetEvent(ev)
-        .required(true)
-        .ok('OK')
-        .cancel('Cancel');
-          
-      self.mdDialog.show(confirm).then(function(result) {
-        if (result.length!==""){
-          self.assessment.color[index]="md=green";
-          self.assessment[param][index]=result;
-        }
-      });
+        var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+          .parent(angular.element(document.body))
+          .title('What is the ' + title + ' for ' + self.assessment.airports[index]  + '?')
+          .textContent('Enter ' + title)
+          .placeholder(title)
+          .ariaLabel(title)
+          .initialValue('')
+          .targetEvent(ev)
+          .required(true)
+          .ok('OK')
+          .cancel('Cancel');
+            
+        self.mdDialog.show(confirm).then(function(result) {
+          if (result.length!==""){
+            self.assessment.color[index]="md-green";
+            self.assessment[param][index]=result;
+          }
+        });
       },400);
     }
+    
+    self.changeFreezing=function(ev,index){
+      self.timeout(function(){
+      
+        var confirm = self.mdDialog.confirm({clickOutsideToClose: true})
+          .parent(angular.element(document.body))
+          .title('Is there Freezing Precipitation for ' + self.assessment.airports[index]  + '?')
+          .textContent('Tap True or False')
+          .ariaLabel('Freezing Precipitation')
+          .targetEvent(ev)
+          .ok('True')
+          .cancel('False');
+            
+        self.mdDialog.show(confirm).then(function() {
+            self.assessment.color[index]="md-red";
+            self.assessment.freezingPrecipitations[index]=true;
+        },function(){
+            self.assessment.color[index]="md-green";
+            self.assessment.freezingPrecipitations[index]=false;
+        });
+      },400);
+    };
     
     self.addAirport=function(ev){
       self.timeout(function(){
@@ -408,18 +454,23 @@ angular.module('workspaceApp')
       
       if (self.assessment.color[i]!=='md-red'&&self.assessment.color[i]!=='md-yellow') self.assessment.color[i]='md-orange';
       return 'md-orange';
-    }
+    };
     
     self.green=function(i){
       
       if (self.assessment.color[i]!=='md-red'&&self.assessment.color[i]!=='md-yellow'&&self.assessment.color[i]!=='md-orange') 
          self.assessment.color[i]='md-green';
       return 'md-green';
-    }
+    };
+    
+    self.blue=function(i){
+      return 'md-blue';
+    };
     
     self.visibilityClass=function(index){
       
       var airport = self.getAirport(self.assessment.airports[index]);
+      if (!self.assessment.visibilities[index]) return self.blue(index);
       if (airport.visibilityRequirement.red>self.assessment.visibilities[index]) return self.red(index);
       if (airport.visibilityRequirement.yellow>self.assessment.visibilities[index]) return self.yellow(index);
       if (self.assessment.night[index]) {
@@ -435,6 +486,7 @@ angular.module('workspaceApp')
     self.ceilingClass=function(index){
       
       var airport = self.getAirport(self.assessment.airports[index]);
+      if (!self.assessment.ceilings[index]) return self.blue(index);
       if (airport.ceilingRequirement.red>self.assessment.ceilings[index]) return self.red(index);
       if (airport.ceilingRequirement.yellow>self.assessment.ceilings[index]) return self.yellow(index);
       if (self.assessment.night[index]) {
@@ -456,6 +508,7 @@ angular.module('workspaceApp')
     
     self.windClass=function(index){
       
+      if (!self.assessment.windGusts[index]) return self.blue(index);
       if (self.assessment.windGusts[index]>self.assessment.equipment.wind) return self.red(index);
       return self.green(index);
     }
@@ -481,101 +534,106 @@ angular.module('workspaceApp')
     self.submit=function(ev){
       self.timeout(function(){
       
-      self.assessment.equipment=self.assessment.equipment.name;
-      if (!self.assessment||
-             !self.assessment.pilot||
-             !self.assessment.pilot.name||
-             !self.assessment.flight||
-             !self.assessment.equipment||
-             self.assessment.pilot.name===""||
-             self.assessment.flight===""||
-             self.assessment.equipment==="") {
-        var alert = self.mdDialog.alert({
-          title: 'Attention',
-          textContent: 'You need to enter a pilot, an aircraft, and a flight number at the top of the page.',
-          ok: 'Close'
-        });
+        self.assessment.equipment=self.assessment.equipment.name;
+        if (!self.assessment||
+               !self.assessment.pilot||
+               !self.assessment.pilot.name||
+               !self.assessment.flight||
+               !self.assessment.equipment||
+               self.assessment.pilot.name===""||
+               self.assessment.flight===""||
+               self.assessment.equipment==="") {
+          var alert = self.mdDialog.alert({
+            title: 'Attention',
+            textContent: 'You need to enter a pilot, an aircraft, and a flight number at the top of the page.',
+            ok: 'Close'
+          });
+              
+          self.mdDialog.show(alert).then(function() {
             
-        self.mdDialog.show(alert).then(function() {
-          
-        });
-      }
-      else {
-        self.assessment.pilot=self.assessment.pilot.name;
-        var matchPilots = self.pilots.filter(function(pilot){
-          return pilot.name===self.assessment.pilot;
-        });
-        if (matchPilots.length>0) {
-          self.assessment.level=matchPilots[0].level;
+          });
         }
-        else self.assessment.level="level1";
-        self.assessment.date=new Date();
-        self.assessment.departTimes=self.assessment.times;
-        self.$http.post(self.api+'/api/assessments/mobile', self.assessment)
-          .then(function(response){
-            self.assessment={};
-            self.initAssessment();
-          },
-          function(response){
-            self.localAssessments.push(self.assessment);
-            window.localStorage.setItem( 'assessments', JSON.stringify(self.localAssessments) );
-            self.assessment={};
-            self.initAssessment();
+        else {
+          self.assessment.pilot=self.assessment.pilot.name;
+          var matchPilots = self.pilots.filter(function(pilot){
+            return pilot.name===self.assessment.pilot;
+          });
+          if (matchPilots.length>0) {
+            self.assessment.level=matchPilots[0].level;
           }
-        );
-        
-      }
+          else self.assessment.level="level1";
+          self.assessment.date=new Date();
+          self.assessment.departTimes=self.assessment.times;
+          self.assessment.password=self.apiPassword;
+          self.$http.post(self.api+'/api/assessments/mobile', self.assessment)
+            .then(function(response){
+              self.assessment={};
+              self.initAssessment();
+            },
+            function(response){
+              if (response.status===501) self.promptForPassword();
+              else {
+                self.localAssessments.push(self.assessment);
+                window.localStorage.setItem( 'assessments', JSON.stringify(self.localAssessments) );
+                self.assessment={};
+                self.initAssessment();
+              }
+            }
+          );
+          
+        }
       },400);
     }
     
     self.checkNotifications=function(ev){
       self.timeout(function(){
       
-      if (!self.assessment.pilot) return;
-      self.tempPilot=angular.copy(self.assessment.pilot);
-      window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilot));
-      self.$http.post(self.api+'/api/notifications/mobile/pilot',{pilot:self.assessment.pilot.name}).then(function(response){
-        console.log(response.data);
-        var notifications=response.data;
-        var length=notifications.length;
-        var count=0;
-        var confirm=[];
-        notifications.forEach(function(notification,index){
-          confirm[index] = self.mdDialog.confirm({clickOutsideToClose:true,multiple:true})
-                .title(notifications[index].title
-                    + '   :::   '
-                    + 'Notification from ' + notifications[index].creator + ', created on ' 
-                    + self.moment(notifications[index].createdAt).format('ddd, MMM Do YYYY, h:mm:ss a'))
-                .textContent(notifications[index].notification)
-                .ariaLabel('Notification')
-                .targetEvent(ev)
-                .ok('I have read and understood this notification')
-                .cancel('Remind me later');
-        });
-        
-        var showAnother = function(){
-          if (length>0) self.mdDialog.show(confirm[count]).then(function() {
-            notifications[count].notified.push(self.assessment.pilot.name);
-            self.$http.put(self.api+'/api/notifications/mobile/'+notifications[count]._id, notifications[count]);
-            count++;
-            length--;
-            showAnother();
-          },function(){
-            //do something if user declines to read notification
+        if (!self.assessment.pilot) return;
+        self.tempPilot=angular.copy(self.assessment.pilot);
+        window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilot));
+        self.$http.post(self.api+'/api/notifications/mobile/pilot',{pilot:self.assessment.pilot.name,password:self.apiPassword}).then(function(response){
+          console.log(response.data);
+          var notifications=response.data;
+          var length=notifications.length;
+          var count=0;
+          var confirm=[];
+          notifications.forEach(function(notification,index){
+            confirm[index] = self.mdDialog.confirm({clickOutsideToClose:true,multiple:true})
+                  .title(notifications[index].title
+                      + '   :::   '
+                      + 'Notification from ' + notifications[index].creator + ', created on ' 
+                      + self.moment(notifications[index].createdAt).format('ddd, MMM Do YYYY, h:mm:ss a'))
+                  .textContent(notifications[index].notification)
+                  .ariaLabel('Notification')
+                  .targetEvent(ev)
+                  .ok('I have read and understood this notification')
+                  .cancel('Remind me later');
           });
-        };
-        
-        showAnother();
-        
-      });
+          
+          var showAnother = function(){
+            if (length>0) self.mdDialog.show(confirm[count]).then(function() {
+              notifications[count].notified.push(self.assessment.pilot.name);
+              self.$http.put(self.api+'/api/notifications/mobile/'+notifications[count]._id, notifications[count]);
+              count++;
+              length--;
+              showAnother();
+            },function(){
+              //do something if user declines to read notification
+            });
+          };
+          
+          showAnother();
+          
+        },function(response){
+            if (response.status===501) self.promptForPassword();
+          });
       },400);
       
     }
     
     self.toggleMenu=function(){
       self.timeout(function(){
-      
-      self.mdSidenav('left').toggle();
+        self.mdSidenav('left').toggle();
       },400);
     }
     
