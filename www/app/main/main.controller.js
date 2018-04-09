@@ -207,6 +207,7 @@ angular.module('workspaceApp')
     }
     
     self.changeFlight=function(ev) {
+      self.timeout(function(){
       
       if (!self.assessment.flight||self.assessment.flight==="") return;
     // Appending dialog to document.body to cover sidenav in docs app
@@ -275,10 +276,12 @@ angular.module('workspaceApp')
           self.initAirport(airport,index,0);
         });
       }
+      },400);
       
     }
     
     self.changeAirport=function(ev,index){
+      self.timeout(function(){
       
       var time=self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
         .parent(angular.element(document.body))
@@ -317,9 +320,11 @@ angular.module('workspaceApp')
           }
         });
       });
+      },400);
     }
     
     self.changeParam=function(ev,index,param,title){
+      self.timeout(function(){
       
       var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
         .parent(angular.element(document.body))
@@ -339,6 +344,7 @@ angular.module('workspaceApp')
           self.assessment[param][index]=result;
         }
       });
+      },400);
     }
     
     self.addAirport=function(ev){
@@ -368,7 +374,7 @@ angular.module('workspaceApp')
     
     self.openChangeMenu=function(mdMenu,ev){
       
-      self.timeout(function(){mdMenu.open(ev)},300);
+      self.timeout(function(){mdMenu.open(ev)},400);
     }
     
     self.getAirport=function(icao){
@@ -473,6 +479,7 @@ angular.module('workspaceApp')
     }
     
     self.submit=function(ev){
+      self.timeout(function(){
       
       self.assessment.equipment=self.assessment.equipment.name;
       if (!self.assessment||
@@ -518,9 +525,12 @@ angular.module('workspaceApp')
         );
         
       }
+      },400);
     }
     
     self.checkNotifications=function(ev){
+      self.timeout(function(){
+      
       if (!self.assessment.pilot) return;
       self.tempPilot=angular.copy(self.assessment.pilot);
       window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilot));
@@ -558,12 +568,15 @@ angular.module('workspaceApp')
         showAnother();
         
       });
+      },400);
       
     }
     
     self.toggleMenu=function(){
+      self.timeout(function(){
       
       self.mdSidenav('left').toggle();
+      },400);
     }
     
     self.pixelRatio=function(ratio){
