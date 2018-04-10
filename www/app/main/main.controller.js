@@ -127,14 +127,14 @@ angular.module('workspaceApp')
       self.assessment.tafs[index]="";
       //lookup if airport is at night
       self.initNight(airport,index);
-      if (airport.length!==4) return;
+      if (airport.length<3) return;
       self.$http.get('https://avwx.rest/api/metar/' + airport).then(function(response){
         if (response.data.Error) return;
         
         if ((response.data.Temperature*9/5+32)<self.assessment.equipment.temp) {
             var alert = self.mdDialog.alert({
             title: 'Caution',
-            textContent: 'Check the temperature, it may be too cold for self aircraft',
+            textContent: 'Check the temperature, it may be too cold for this aircraft',
             ok: 'Close'
           });
     
@@ -420,7 +420,7 @@ angular.module('workspaceApp')
     
     self.openChangeMenu=function(mdMenu,ev){
       
-      self.timeout(function(){mdMenu.open(ev)},400);
+      self.timeout(function(){mdMenu.open(ev)},300);
     }
     
     self.getAirport=function(icao){
