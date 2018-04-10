@@ -338,7 +338,7 @@ angular.module('workspaceApp')
           }
         },function(){
           self.mdDialog.show(airport).then(function(result) {
-            if (result.length===4){
+            if (result.length>2){
               self.assessment.airports[index]=result;
               self.initAirport(result,index,0);
             }
@@ -408,7 +408,7 @@ angular.module('workspaceApp')
           .cancel('Cancel');
             
         self.mdDialog.show(confirm).then(function(result) {
-          if (result.length===4){
+          if (result.length>2){
             self.assessment.airports.push(result);
             self.assessment.color.push('md-green');
             self.assessment.times.push(self.moment().format('HH:mm').toString());
