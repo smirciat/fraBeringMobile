@@ -228,12 +228,18 @@ angular.module('workspaceApp')
       self.initAssessment();
       //self.airports=self.appConfig.airportRequirements;
       self.equipment=self.appConfig.equipment;
-    }
+    };
     
     self.changeFlight=function(ev) {
       self.timeout(function(){
-      
         if (!self.assessment.flight||self.assessment.flight==="") return;
+        if ((self.assessment.flight.substring(0,2)==="85"||self.assessment.flight.substring(1,3)==="85")
+            &&self.assessment.equipment.name==="Caravan") {
+          self.assessment={};
+          self.initAssessment();
+          self.caravanAlert();
+          return;
+        }
       // Appending dialog to document.body to cover sidenav in docs app
       // Modal dialogs should fully cover application
       // to prevent interaction outside of dialog
@@ -253,6 +259,12 @@ angular.module('workspaceApp')
               .cancel('Cancel');
               
           self.mdDialog.show(confirm).then(function(result) {
+            if (result.substring(1,3)==="85"&&self.assessment.equipment.name==="Caravan") {
+              self.assessment={};
+              self.initAssessment();
+              self.caravanAlert();
+              return;
+            }
             var newFlight={flightNum:result};
             var flightArr=self.flights.filter(function(flight){
               return flight.flightNum===result.slice(-3);
@@ -380,8 +392,8 @@ angular.module('workspaceApp')
           .textContent('Tap True or False')
           .ariaLabel('Freezing Precipitation')
           .targetEvent(ev)
-          .ok('True')
-          .cancel('False');
+          .ok('Yes')
+          .cancel('None');
             
         self.mdDialog.show(confirm).then(function() {
             self.assessment.color[index]="md-red";
@@ -409,10 +421,20 @@ angular.module('workspaceApp')
             
         self.mdDialog.show(confirm).then(function(result) {
           if (result.length>2){
-            self.assessment.airports.push(result);
-            self.assessment.color.push('md-green');
-            self.assessment.times.push(self.moment().format('HH:mm').toString());
-            self.initAirport(result,self.assessment.airports.length-1,0);
+            if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+              self.caravanAlert();
+            }
+            else {
+              var index=-1;
+              self.flights.forEach(function(flight,i){
+                if (flight.flightNum===self.assessment.flight) index=i;
+              });
+              if (index>-1) self.flights[index].airports.push(result);
+              self.assessment.airports.push(result);
+              self.assessment.color.push('md-green');
+              self.assessment.times.push(self.moment().format('HH:mm').toString());
+              self.initAirport(result,self.assessment.airports.length-1,0);
+            }
           }
         });
       },400);
@@ -523,13 +545,25 @@ angular.module('workspaceApp')
       
       if (self.assessment.tafs[index]!=="") return self.green(index);
       return "md-blue";
-    }
+    };
     
     self.nightClass=function(index){
       
       if (self.assessment.night[index]) return "night";
       else return "day";
-    }
+    };
+    
+    self.caravanAlert=function(){
+      var alert = self.mdDialog.alert({
+            title: 'Pick another aircraft',
+            textContent: 'You cannot take a Caravan to Gambell or Savoonga.',
+            ok: 'Close'
+          });
+              
+          self.mdDialog.show(alert).then(function() {
+            
+          });
+    };
     
     self.submit=function(ev){
       self.timeout(function(){
@@ -646,6 +680,12 @@ angular.module('workspaceApp')
     
     self.checkPilot=function(name){
       return name===self.tempPilot.name;
+    };
+    
+    
+    self.freezeResult=function(bool){
+      if (bool) return 'Yes';
+      return 'None';
     };
 
   
