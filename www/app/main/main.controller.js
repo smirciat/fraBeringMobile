@@ -351,13 +351,18 @@ angular.module('workspaceApp')
         },function(){
           self.mdDialog.show(airport).then(function(result) {
             if (result.length>2){
-              self.assessment.airports[index]=result;
-              self.initAirport(result,index,0);
+              if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+                self.caravanAlert();
+              }
+              else {
+                self.assessment.airports[index]=result;
+                self.initAirport(result,index,0);
+              }
             }
           });
         });
       },400);
-    }
+    };
     
     self.changeParam=function(ev,index,param,title){
       self.timeout(function(){
