@@ -131,7 +131,14 @@ angular.module('workspaceApp')
       if (airport.length<3) return;
       self.$http.post(self.api+'/api/airportRequirements/mobile/adds',{airport:airport}).then(function(response){
         var metar=response.data;
-        if (metar) {
+        if (metar==="missing") {
+          console.log('Metar missing');
+          if (count<6) {
+            self.timeout(function(){self.initAirport(airport,index,count)},20000);
+          }
+          return;
+        }
+        if (metar&&metar!=="") {
           var metarObj=self.parseADDS(metar);
           if ((metarObj.Temperature*9/5+32)<self.assessment.equipment.temp) {
               var alert = self.mdDialog.alert({
@@ -217,9 +224,17 @@ angular.module('workspaceApp')
       else obs['Wind-Gust']="";
       obs.vis=metarArray.shift();//visibility
       if (obs.vis.split('V').length>1&&obs.vis.split('V')[0].length===3&&obs.vis.split('V')[1].length===3) obs.vis=metarArray.shift();//variable winds, ignore
+      if (obs.vis.slice(-2)!=="SM") obs.vis = obs.vis + ' ' + metarArray.shift();//this covers visibilities such as "1 3/4SM"
       var visArray=obs.vis.split('/');
-      if (visArray.length>1) obs.Visibility=visArray[0].replace(/[^0-9]/g, '') + '/' + visArray[1].replace(/[^0-9]/g, '');
+      if (visArray.length>1) obs.Visibility=visArray[0].replace(/[^0-9 ]/g, '') + '/' + visArray[1].replace(/[^0-9]/g, '');
       else obs.Visibility=obs.vis.replace(/[^0-9]/g, '');//remove leading M and trailing SM
+      visArray=obs.Visibility.split(' ');
+      if (visArray.length>1) {//turn 1 1/2 into 3/2
+        var number = parseInt(visArray[0],10);
+        var top = parseInt(visArray[1].substring(0,1),10);
+        var bottom = parseInt(visArray[1].slice(-1),10);
+        obs.Visibility= (top+number*bottom) + '/' + bottom;
+      }
       obs['Other-List']=[];
       obs['Cloud-List']=[];
       var unknown=metarArray.shift();//let's test this
@@ -466,43 +481,48 @@ angular.module('workspaceApp')
     
     self.addAirport=function(ev){
       self.timeout(function(){
-        var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
-          .parent(angular.element(document.body))
-          .title('What is the new airport?')
-          .textContent('Enter a four letter airport code')
-          .placeholder('Airport')
-          .ariaLabel('Airport')
-          .initialValue('')
-          .targetEvent(ev)
-          .required(true)
-          .ok('OK')
-          .cancel('Cancel');
-            
-        self.mdDialog.show(confirm).then(function(result) {
-          if (result.length>2){
-            if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
-              self.caravanAlert();
-            }
-            else {
-              var index=-1;
-              self.flights.forEach(function(flight,i){
-                if (flight.flightNum===self.assessment.flight) index=i;
-              });
-              if (index>-1) self.flights[index].airports.push(result);
-              self.assessment.airports.push(result);
-              self.assessment.color.push('md-green');
-              self.assessment.times.push(self.moment().format('HH:mm').toString());
-              self.initAirport(result,self.assessment.airports.length-1,0);
-            }
+        self.mdDialog.show({
+        controller: self.DialogController,
+        templateUrl: 'app/main/addAirport.html',
+        parent: angular.element(document.body),
+        scope: self.scope,
+        preserveScope: true,
+        targetEvent: ev,
+        clickOutsideToClose:true,
+        fullscreen: true
+      })
+      .then(function(addedAirports) {
+        addedAirports.forEach(function(airport){
+          if ((airport.toUpperCase()==="PASA"||airport.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+            self.caravanAlert();
+          }
+          else {
+            var index=-1;
+            self.flights.forEach(function(flight,i){
+              if (flight.flightNum===self.assessment.flight) index=i;
+            });
+            if (index>-1) self.flights[index].airports.push(airport);
+            self.assessment.airports.push(airport);
+            self.assessment.color.push('md-green');
+            self.assessment.times.push(self.moment().format('HH:mm').toString());
+            self.initAirport(airport,self.assessment.airports.length-1,0);
           }
         });
+      });
       },400);
-    }
+    };
+    
+    self.DialogController=function($scope, $mdDialog) {
+      $scope.dialogAirports=[];
+      $scope.answer=function(){
+        $mdDialog.hide($scope.dialogAirports);
+      };
+    };
     
     self.openChangeMenu=function(mdMenu,ev){
       
       self.timeout(function(){mdMenu.open(ev)},300);
-    }
+    };
     
     self.getAirport=function(icao){
       
@@ -660,23 +680,40 @@ angular.module('workspaceApp')
           self.assessment.password=self.apiPassword;
           self.$http.post(self.api+'/api/assessments/mobile', self.assessment)
             .then(function(response){
-              self.assessment={};
-              self.initAssessment();
+              self.alertSubmitSuccess();
             },
             function(response){
               if (response.status===501) self.promptForPassword();
               else {
                 self.localAssessments.push(self.assessment);
                 window.localStorage.setItem( 'assessments', JSON.stringify(self.localAssessments) );
-                self.assessment={};
-                self.initAssessment();
+                self.alertSubmitSuccess();
               }
             }
           );
           
         }
       },400);
-    }
+    };
+    
+    self.clear=function(){
+      self.assessment={};
+      self.initAssessment();
+    };
+    
+    self.alertSubmitSuccess=function(){
+      var alert = self.mdDialog.alert({
+        title: 'Success!',
+        htmlContent: 'Your Flight Risk Assessment has been successfully submitted.<br> To clear the assessment, click the purple "Clear Assessment" button',
+        ok: 'Close'
+      });
+
+      self.mdDialog
+        .show( alert )
+        .finally(function() {
+          alert = undefined;
+      });
+    };
     
     self.checkNotifications=function(ev){
       self.timeout(function(){
