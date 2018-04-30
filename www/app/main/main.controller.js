@@ -76,13 +76,13 @@ angular.module('workspaceApp')
         .then(function(response) {
           self.pilots = response.data;
           self.timeout(function(){
-            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
+            if (self.assessment.pilotObj===""||self.assessment.pilotObj===undefined) self.assessment.pilotObj=angular.copy(self.tempPilot);
           },1000);
           window.localStorage.setItem('pilots',JSON.stringify(self.pilots));
         },function(response){
           self.pilots=JSON.parse(window.localStorage.getItem('pilots'));
           self.timeout(function(){
-            if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.assessment.pilot=angular.copy(self.tempPilot);
+            if (self.assessment.pilotObj===""||self.assessment.pilotObj===undefined) self.assessment.pilotObj=angular.copy(self.tempPilot);
           },1000);
         });
     };
@@ -91,19 +91,19 @@ angular.module('workspaceApp')
       self.timeout.cancel(self.timer);
       var airports,pilot,flight,equipment,color,night,times;
       if (self.assessment) {
-        pilot=self.assessment.pilot||"";
+        pilot=self.assessment.pilotObj||"";
         flight=self.assessment.flight||"";
         airports=self.assessment.airports||[];
-        equipment=self.assessment.equipment||{id:1,name:"Caravan",wind:35,temp:-50};
+        equipment=self.assessment.equipmentObj||{id:1,name:"Caravan",wind:35,temp:-50};
         color=self.assessment.color||[];
         night=self.assessment.night||[];
         times=self.assessment.times||[];
       }
       else airports=[];
       self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,crossWinds:[],
-        windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilot:pilot,flight:flight,equipment:equipment,color:color
+        windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilotObj:pilot,flight:flight,equipmentObj:equipment,color:color
       };
-      if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.initPilots();
+      if (self.assessment.pilotObj===""||self.assessment.pilotObj===undefined) self.initPilots();
     }
     
     self.initNight=function(airport,index){
@@ -148,7 +148,7 @@ angular.module('workspaceApp')
         }
         if (metar&&metar!=="") {
           var metarObj=self.parseADDS(metar);
-          if ((metarObj.Temperature*9/5+32)<self.assessment.equipment.temp) {
+          if ((metarObj.Temperature*9/5+32)<self.assessment.equipmentObj.temp) {
               var alert = self.mdDialog.alert({
               title: 'Caution',
               textContent: 'Check the temperature, it may be too cold for this aircraft',
@@ -325,7 +325,7 @@ angular.module('workspaceApp')
       self.timeout(function(){
         if (!self.assessment.flight||self.assessment.flight==="") return;
         if ((self.assessment.flight.substring(0,2)==="85"||self.assessment.flight.substring(1,3)==="85")
-            &&self.assessment.equipment.name==="Caravan") {
+            &&self.assessment.equipmentObj.name==="Caravan") {
           self.assessment={};
           self.initAssessment();
           self.caravanAlert();
@@ -350,7 +350,7 @@ angular.module('workspaceApp')
               .cancel('Cancel');
               
           self.mdDialog.show(confirm).then(function(result) {
-            if (result.substring(1,3)==="85"&&self.assessment.equipment.name==="Caravan") {
+            if (result.substring(1,3)==="85"&&self.assessment.equipmentObj.name==="Caravan") {
               self.assessment={};
               self.initAssessment();
               self.caravanAlert();
@@ -441,8 +441,8 @@ angular.module('workspaceApp')
           }
         },function(){
           self.mdDialog.show(airport).then(function(result) {
-            if (result.length>2){
-              if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+            if (result&&result.length>2){
+              if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipmentObj.name==="Caravan") {
                 self.caravanAlert();
               }
               else {
@@ -471,13 +471,43 @@ angular.module('workspaceApp')
           .cancel('Cancel');
             
         self.mdDialog.show(confirm).then(function(result) {
-          if (result.length!==""){
+          if (result!==""){
             self.assessment.color[index]="md-green";
             self.assessment[param][index]=result;
           }
         });
       },400);
-    }
+    };
+    
+    self.addComment=function(ev){
+      var self=this;
+      var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+        .parent(angular.element(document.body))
+        .title('Add Assessment Comment')
+        .textContent('Enter a comment to go with this assessment.')
+        .placeholder('comment')
+        .ariaLabel('comment')
+        .initialValue(self.assessment.comment)
+        .targetEvent(ev)
+        .required(true)
+        .ok('OK')
+        .cancel('Cancel');
+          
+      self.mdDialog.show(confirm).then(function(result) {
+        if (result!==""){
+          self.assessment.comment=result;
+          var alert = self.mdDialog.alert({
+            title: 'Success!',
+            textContent: 'You successfully added a comment to this assessment.',
+            ok: 'OK'
+          });
+              
+          self.mdDialog.show(alert).then(function() {
+            
+          });
+        }
+      });
+    };
     
     self.changeFreezing=function(ev,index){
       self.timeout(function(){
@@ -516,8 +546,8 @@ angular.module('workspaceApp')
        .cancel('Cancel');
          
      self.mdDialog.show(confirm).then(function(result) {
-       if (result.length>2){
-         if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+       if (result&&result.length>2){
+         if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipmentObj.name==="Caravan") {
            self.caravanAlert();
          }
          else {
@@ -553,7 +583,7 @@ angular.module('workspaceApp')
           return;
         }
         addedAirports.forEach(function(airport){
-          if ((airport.toUpperCase()==="PASA"||airport.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+          if ((airport.toUpperCase()==="PASA"||airport.toUpperCase()==="PAGM")&&self.assessment.equipmentObj.name==="Caravan") {
             self.caravanAlert();
           }
           else {
@@ -673,8 +703,8 @@ angular.module('workspaceApp')
     self.windClass=function(index){
       
       if (!self.assessment.windGusts[index]) return self.blue(index);
-      if (self.assessment.windGusts[index]>self.assessment.equipment.wind) return self.red(index);
-      if (self.assessment.crossWinds[index]>self.assessment.equipment.xwind) return self.red(index);
+      if (self.assessment.windGusts[index]>self.assessment.equipmentObj.wind) return self.red(index);
+      if (self.assessment.crossWinds[index]>self.assessment.equipmentObj.xwind) return self.red(index);
       return self.green(index);
     }
     
@@ -711,13 +741,13 @@ angular.module('workspaceApp')
     self.submit=function(ev){
       self.timeout(function(){
       
-        self.assessment.equipment=self.assessment.equipment.name;
+        self.assessment.equipment=self.assessment.equipmentObj.name;
         if (!self.assessment||
-               !self.assessment.pilot||
-               !self.assessment.pilot.name||
+               !self.assessment.pilotObj||
+               !self.assessment.pilotObj.name||
                !self.assessment.flight||
-               !self.assessment.equipment||
-               self.assessment.pilot.name===""||
+               !self.assessment.equipmentObj||
+               self.assessment.pilotObj.name===""||
                self.assessment.flight===""||
                self.assessment.equipment==="") {
           var alert = self.mdDialog.alert({
@@ -731,7 +761,7 @@ angular.module('workspaceApp')
           });
         }
         else {
-          self.assessment.pilot=self.assessment.pilot.name;
+          self.assessment.pilot=self.assessment.pilotObj.name;
           var matchPilots = self.pilots.filter(function(pilot){
             return pilot.name===self.assessment.pilot;
           });
@@ -782,10 +812,10 @@ angular.module('workspaceApp')
     self.checkNotifications=function(ev){
       self.timeout(function(){
       
-        if (!self.assessment.pilot) return;
-        self.tempPilot=angular.copy(self.assessment.pilot);
-        window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilot));
-        self.$http.post(self.api+'/api/notifications/mobile/pilot',{pilot:self.assessment.pilot.name,password:self.apiPassword}).then(function(response){
+        if (!self.assessment.pilotObj) return;
+        self.tempPilot=angular.copy(self.assessment.pilotObj);
+        window.localStorage.setItem('pilot',JSON.stringify(self.assessment.pilotObj));
+        self.$http.post(self.api+'/api/notifications/mobile/pilot',{pilot:self.assessment.pilotObj.name,password:self.apiPassword}).then(function(response){
           console.log(response.data);
           var notifications=response.data;
           var length=notifications.length;
@@ -806,7 +836,7 @@ angular.module('workspaceApp')
           
           var showAnother = function(){
             if (length>0) self.mdDialog.show(confirm[count]).then(function() {
-              notifications[count].notified.push(self.assessment.pilot.name);
+              notifications[count].notified.push(self.assessment.pilotObj.name);
               self.$http.put(self.api+'/api/notifications/mobile/'+notifications[count]._id, notifications[count]);
               count++;
               length--;
