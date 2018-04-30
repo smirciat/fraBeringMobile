@@ -18,10 +18,17 @@ angular.module('workspaceApp')
       self.localAssessments=[];
       self.apiPassword="";
       
+      $scope.$on(
+          "$destroy",
+          function( event ) {
+              $timeout.cancel( self.timer );
+          }
+      );
+      
       self.promptForPassword=function(){
         var confirm = self.mdDialog.prompt()
             .parent(angular.element(document.body))
-            .title('What is the passwordr?')
+            .title('What is the password?')
             .textContent('You only need to enter this once per device.  The device will remember until the password is changed.')
             .placeholder('password')
             .ariaLabel('password')
@@ -81,7 +88,7 @@ angular.module('workspaceApp')
     };
     
     self.initAssessment=function(){
-      
+      self.timeout.cancel(self.timer);
       var airports,pilot,flight,equipment,color,night,times;
       if (self.assessment) {
         pilot=self.assessment.pilot||"";
@@ -93,7 +100,7 @@ angular.module('workspaceApp')
         times=self.assessment.times||[];
       }
       else airports=[];
-      self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,
+      self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,crossWinds:[],
         windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilot:pilot,flight:flight,equipment:equipment,color:color
       };
       if (self.assessment.pilot===""||self.assessment.pilot===undefined) self.initPilots();
@@ -134,7 +141,8 @@ angular.module('workspaceApp')
         if (metar==="missing") {
           console.log('Metar missing');
           if (count<6) {
-            self.timeout(function(){self.initAirport(airport,index,count)},20000);
+            self.timer=self.timeout(function(){self.initAirport(airport,index,count)},20000);
+            self.timer;
           }
           return;
         }
@@ -164,6 +172,17 @@ angular.module('workspaceApp')
           self.assessment.ceilings[index] = self.assessment.ceilings[index].replace(/^0+/, '');
           if (metarObj['Wind-Gust']==="") self.assessment.windGusts[index]=metarObj['Wind-Speed'];
           else self.assessment.windGusts[index]=metarObj['Wind-Gust'];
+          self.assessment.windDirections[index]=metarObj['Wind-Direction'];
+          //crosswind limit
+          var ap = self.getAirport(self.assessment.airports[index]);
+          var xwindAngle=90;
+          var direction=parseInt(self.assessment.windDirections[index],10);
+          ap.runways.forEach(function(runway){
+            if (Math.abs(direction-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-runway*10);
+            if (Math.abs(direction+360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction+360-runway*10);
+            if (Math.abs(direction-360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-360-runway*10);
+          });
+          self.assessment.crossWinds[index] = Math.round(self.assessment.windGusts[index]*Math.sin(xwindAngle*(Math.PI/180)));
           self.assessment.visibilities[index]=metarObj.Visibility;
           if (self.assessment.visibilities[index].includes('/')) {
             var bits = self.assessment.visibilities[index].split("/");
@@ -200,8 +219,10 @@ angular.module('workspaceApp')
           self.assessment.tafs[index]=response.data['Raw-Report'];
         },function(response){
             if (response.status===500){
-            if (count<6) self.timeout(self.initAirport(airport,index),20000);
-          }
+              if (count<6) {
+                self.timeout(function(){self.initAirport(airport,index,count)},20000);
+              }
+            }
           else self.assessment.tafs[index]="";
         });
       }
@@ -300,6 +321,7 @@ angular.module('workspaceApp')
     };
     
     self.changeFlight=function(ev) {
+      self.timeout.cancel(self.timer);
       self.timeout(function(){
         if (!self.assessment.flight||self.assessment.flight==="") return;
         if ((self.assessment.flight.substring(0,2)==="85"||self.assessment.flight.substring(1,3)==="85")
@@ -386,8 +408,8 @@ angular.module('workspaceApp')
     };
     
     self.changeAirport=function(ev,index){
+      self.timeout.cancel(self.timer);
       self.timeout(function(){
-      
         var time=self.mdDialog.prompt({clickOutsideToClose: true,multiple:true})
           .parent(angular.element(document.body))
           .title('What is the new departure time for self airport?')
@@ -479,6 +501,40 @@ angular.module('workspaceApp')
       },400);
     };
     
+    self.addAirportOld=function(ev){
+     var self=this;
+     var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+       .parent(angular.element(document.body))
+       .title('What is the new airport?')
+       .textContent('Enter a four letter airport code')
+       .placeholder('Airport')
+       .ariaLabel('Airport')
+       .initialValue('')
+       .targetEvent(ev)
+       .required(true)
+       .ok('OK')
+       .cancel('Cancel');
+         
+     self.mdDialog.show(confirm).then(function(result) {
+       if (result.length>2){
+         if ((result.toUpperCase()==="PASA"||result.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
+           self.caravanAlert();
+         }
+         else {
+           var index=-1;
+           self.flights.forEach(function(flight,i){
+             if (flight.flightNum===self.assessment.flight) index=i;
+           });
+           if (index>-1) self.flights[index].airports.push(result);
+           self.assessment.airports.push(result);
+           self.assessment.color.push('md-green');
+           self.assessment.times.push(self.moment().format('HH:mm').toString());
+           self.initAirport(result,self.assessment.airports.length-1,0);
+         }
+       }
+     });
+    };
+    
     self.addAirport=function(ev){
       self.timeout(function(){
         self.mdDialog.show({
@@ -492,6 +548,10 @@ angular.module('workspaceApp')
         fullscreen: true
       })
       .then(function(addedAirports) {
+        if (typeof addedAirports==='string') {
+          self.addAirportOld(ev);
+          return;
+        }
         addedAirports.forEach(function(airport){
           if ((airport.toUpperCase()==="PASA"||airport.toUpperCase()==="PAGM")&&self.assessment.equipment.name==="Caravan") {
             self.caravanAlert();
@@ -516,6 +576,9 @@ angular.module('workspaceApp')
       $scope.dialogAirports=[];
       $scope.answer=function(){
         $mdDialog.hide($scope.dialogAirports);
+      };
+      $scope.manual=function(){
+        $mdDialog.hide('manual');
       };
     };
     
@@ -611,6 +674,7 @@ angular.module('workspaceApp')
       
       if (!self.assessment.windGusts[index]) return self.blue(index);
       if (self.assessment.windGusts[index]>self.assessment.equipment.wind) return self.red(index);
+      if (self.assessment.crossWinds[index]>self.assessment.equipment.xwind) return self.red(index);
       return self.green(index);
     }
     
