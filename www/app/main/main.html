@@ -57,7 +57,7 @@
         <div layout="row" flex>
           <md-menu md-position-mode="target-left bottom" flex="25" layout="column" >
             <md-button class="md-raised" ng-class="main.airportClass($index)" flex 
-               uib-tooltip="{{main.assessment.metars[$index]}}" tooltip-placement="bottom"
+               uib-tooltip="{{main.assessment.metars[$index]}}" tooltip-placement="auto + bottom"
                ng-click="main.openChangeMenu($mdMenu, $event)">
                   Airport:<br>{{airport+' '+main.getAirport(airport).name}}
             </md-button>
@@ -141,7 +141,7 @@
           </md-menu>
           
           <md-menu md-position-mode="target-left bottom" flex="25" layout="column" >
-            <md-button class="md-raised" ng-class="main.tafClass($index)" uib-tooltip="{{main.assessment.tafs[$index]}}" tooltip-placement="bottom" flex>
+            <md-button class="md-raised" ng-class="main.tafClass($index)" uib-tooltip="{{main.assessment.tafs[$index]}}" tooltip-placement="auto + bottom" flex>
                   TAF
             </md-button>
             <md-menu-content width="4" ng-mouseleave="$mdMenu.close()">
