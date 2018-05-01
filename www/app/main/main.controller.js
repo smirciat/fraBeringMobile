@@ -94,17 +94,18 @@ angular.module('workspaceApp')
         pilot=self.assessment.pilotObj||"";
         flight=self.assessment.flight||"";
         airports=self.assessment.airports||[];
-        equipment=self.assessment.equipmentObj||{id:1,name:"Caravan",wind:35,temp:-50};
+        equipment=self.assessment.equipmentObj||{id:1,name:"Caravan",wind:35,xwind:25,temp:-50};
         color=self.assessment.color||[];
         night=self.assessment.night||[];
         times=self.assessment.times||[];
       }
       else airports=[];
-      self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,crossWinds:[],
-        windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilotObj:pilot,flight:flight,equipmentObj:equipment,color:color
+      self.assessment={metars:[],tafs:[],visibilities:[],ceilings:[],windGusts:[],night:night,times:times,crossWinds:[],runwayConditionComments:[],
+        windDirections:[],runwayConditions:[],freezingPrecipitations:[], airports:airports, pilotObj:pilot,flight:flight,equipmentObj:equipment,
+        color:color,forecastFreezingPrecipitations:[],forecastVisibilities:[]
       };
       if (self.assessment.pilotObj===""||self.assessment.pilotObj===undefined) self.initPilots();
-    }
+    };
     
     self.initNight=function(airport,index){
       
@@ -172,6 +173,7 @@ angular.module('workspaceApp')
           self.assessment.ceilings[index] = self.assessment.ceilings[index].replace(/^0+/, '');
           if (metarObj['Wind-Gust']==="") self.assessment.windGusts[index]=metarObj['Wind-Speed'];
           else self.assessment.windGusts[index]=metarObj['Wind-Gust'];
+          self.assessment.windGusts[index]=parseInt(self.assessment.windGusts[index],10);
           self.assessment.windDirections[index]=metarObj['Wind-Direction'];
           //crosswind limit
           var ap = self.getAirport(self.assessment.airports[index]);
@@ -193,12 +195,26 @@ angular.module('workspaceApp')
             if (res.data.length>0){
               var i = res.data[0].airports.indexOf(airport);
               if (i>-1) {
-                if (res.data[0].runwayConditions[i]) self.assessment.runwayConditions[index]=res.data[0].runwayConditions[i];
-                else self.assessment.runwayConditions[index]=5;
+                if (res.data[0].runwayConditions[i]) {
+                  self.assessment.runwayConditions[index]=res.data[0].runwayConditions[i];
+                  if (res.data[0].runwayConditionComments&&res.data[0].runwayConditionComments.length>=i+1) 
+                      self.assessment.runwayConditionComments[index]=res.data[0].runwayConditionComments[i];
+                  else self.assessment.runwayConditionComments[index]="";
+                }
+                else {
+                  self.assessment.runwayConditions[index]=5;
+                  self.assessment.runwayConditionComments[index]="";
+                }
               }
-              else self.assessment.runwayConditions[index]=5;
+              else {
+                  self.assessment.runwayConditions[index]=5;
+                  self.assessment.runwayConditionComments[index]="";
+                }
             }
-            else self.assessment.runwayConditions[index]=5;
+            else {
+                  self.assessment.runwayConditions[index]=5;
+                  self.assessment.runwayConditionComments[index]="";
+                }
           });
           self.assessment.freezingPrecipitations[index]=false;
           if (metarObj['Other-List'].length>0) {
@@ -213,10 +229,47 @@ angular.module('workspaceApp')
           airport.toUpperCase()=="PAUN"||airport.toUpperCase()=="PANC"||airport.toUpperCase()=="PAGA") {
         self.$http.get('https://avwx.rest/api/taf/' + airport).then(function(response){
           if (response.data.Error) { 
-            self.airports[index]=self.airportsCopy[index];
+            //self.airports[index]=self.airportsCopy[index];
             return;
           }
           self.assessment.tafs[index]=response.data['Raw-Report'];
+          var year=self.moment().tz('UTC').year();
+          var month=self.moment().tz('UTC').month()+1;
+          var day=self.moment().tz('UTC').date();
+          var hour=self.moment().tz('UTC').hour();
+          var forecastMonth,forecastDay,forecastHour,monthStr,dayStr,hourStr,initialForecastTime;
+          var visibility=10;
+          var icing=false;
+          var scheduledTime=self.assessment.times[index];
+          if (index===0) scheduledTime=self.assessment.times[self.assessment.times.length-1];
+          var scheduledTimeArr=scheduledTime.split(':');
+          var forecastTime;
+          response.data.Forecast.forEach(function(forecast,i){
+            //forecast['Start-Time'], ['Other-List'], ['Visibility']
+            //start time is in ddhh format
+            dayStr=forecast['Start-Time'].substring(0,2);
+            forecastDay=parseInt(dayStr,10);
+            hourStr=forecast['Start-Time'].substring(2,4);
+            forecastHour=parseInt(hourStr,10);
+            forecastMonth=month;
+            if (forecastMonth<10) monthStr='0'+forecastMonth;
+            else monthStr=forecastMonth.toString();
+            forecastTime=self.moment(year.toString()+monthStr+dayStr+'T'+hourStr+'0000Z');
+            if (i===0) initialForecastTime=angular.copy(forecastTime);
+            scheduledTime = self.moment(initialForecastTime).startOf('day').hour(scheduledTimeArr[0]).minute(scheduledTimeArr[1]);
+            if (scheduledTime.isAfter(forecastTime)) {
+              self.assessment.forecastFreezingPrecipitations[index]=false;
+              forecast['Other-List'].forEach(function(item){
+                var i=item.replace(/[^a-zA-Z]/g, "");
+                if (i.substring(0,2)==="FZ") self.assessment.forecastFreezingPrecipitations[index]=true;
+              });
+              self.assessment.forecastVisibilities[index]=forecast.Visibility;
+              if (self.assessment.forecastVisibilities[index].includes('/')) {
+                var bits = self.assessment.forecastVisibilities[index].split("/");
+                self.assessment.forecastVisibilities[index] = parseInt(bits[0],10)/parseInt(bits[1],10);
+              }
+            }
+          });
         },function(response){
             if (response.status===500){
               if (count<6) {
@@ -457,7 +510,8 @@ angular.module('workspaceApp')
     
     self.changeParam=function(ev,index,param,title){
       self.timeout(function(){
-      
+        var cancel="Cancel";
+        if (param==="runwayConditions") cancel="View Runway Report";
         var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
           .parent(angular.element(document.body))
           .title('What is the ' + title + ' for ' + self.assessment.airports[index]  + '?')
@@ -468,16 +522,42 @@ angular.module('workspaceApp')
           .targetEvent(ev)
           .required(true)
           .ok('OK')
-          .cancel('Cancel');
+          .cancel(cancel);
             
         self.mdDialog.show(confirm).then(function(result) {
           if (result!==""){
             self.assessment.color[index]="md-green";
             self.assessment[param][index]=result;
+            if (param==="runwayConditions"&&parseInt(result,10)<5){
+              self.enterRunwayReport(ev,index);
+            }
+          }
+        },function(){
+          if (param==="runwayConditions"&&parseInt(self.assessment.runwayConditions[index],10)<5){
+            self.enterRunwayReport(ev,index);
           }
         });
       },400);
     };
+    
+    self.enterRunwayReport=function(ev,index){
+      var self=this;
+      var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+        .parent(angular.element(document.body))
+        .title('Enter Runway Report')
+        .textContent('What is the condition of the runway at ' + self.assessment.airports[index])
+        .placeholder('RunwayReport')
+        .ariaLabel('RunwayReport')
+        .initialValue(self.assessment.runwayConditionComments[index])
+        .targetEvent(ev)
+        .required(true)
+        .ok('Record')
+        .cancel('Cancel');
+          
+      self.mdDialog.show(confirm).then(function(result) {
+        if (result!=="") self.assessment.runwayConditionComments[index]=result;
+      });
+    }
     
     self.addComment=function(ev){
       var self=this;
@@ -715,8 +795,11 @@ angular.module('workspaceApp')
     }
     
     self.tafClass=function(index){
-      
-      if (self.assessment.tafs[index]!=="") return self.green(index);
+      if (self.assessment.tafs[index]!=="") {
+        if (self.assessment.forecastVisibilities&&self.assessment.forecastVisibilities[index]<1) return self.yellow(index);
+        if (self.assessment.forecastFreezingPrecipitations&&self.assessment.forecastFreezingPrecipitations[index]) return self.yellow(index);
+        return self.green(index);
+      }
       return "md-blue";
     };
     
