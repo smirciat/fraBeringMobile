@@ -511,11 +511,15 @@ angular.module('workspaceApp')
     self.changeParam=function(ev,index,param,title){
       self.timeout(function(){
         var cancel="Cancel";
-        if (param==="runwayConditions") cancel="View Runway Report";
+        var extra="";
+        if (param==="runwayConditions") {
+          cancel="View Runway Report";
+          extra=" 1 for closed, 5 for good runway";
+        }
         var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
           .parent(angular.element(document.body))
-          .title('What is the ' + title + ' for ' + self.assessment.airports[index]  + '?')
-          .textContent('Enter ' + title)
+          .textContent('What is the ' + title + ' for ' + self.assessment.airports[index]  + '?' + extra)
+          .title('Enter ' + title)
           .placeholder(title)
           .ariaLabel(title)
           .initialValue('')
