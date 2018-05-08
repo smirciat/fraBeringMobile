@@ -17,11 +17,20 @@ angular.module('workspaceApp')
       self.api=appConfig.api;
       self.localAssessments=[];
       self.apiPassword="";
+      self.submitDisabled=false;
+      self.fourteenHours=$interval(function(){
+        self.init();
+      },50400000);//each 14 hours
+      self.scrape=$interval(function(){
+        self.scrapeStorage();
+      },1800000);//each 30 minutes
       
       $scope.$on(
           "$destroy",
           function( event ) {
               $timeout.cancel( self.timer );
+              $interval.cancel(self.fourteenHours);
+              $interval.cancel(self.scrape);
           }
       );
       
@@ -786,7 +795,7 @@ angular.module('workspaceApp')
     
     self.windClass=function(index){
       
-      if (!self.assessment.windGusts[index]) return self.blue(index);
+      if (self.assessment.windGusts[index]===undefined) return self.blue(index);
       if (self.assessment.windGusts[index]>self.assessment.equipmentObj.wind) return self.red(index);
       if (self.assessment.crossWinds[index]>self.assessment.equipmentObj.xwind) return self.red(index);
       return self.green(index);
@@ -848,6 +857,7 @@ angular.module('workspaceApp')
           });
         }
         else {
+          self.submitDisabled=true;
           self.assessment.pilot=self.assessment.pilotObj.name;
           var matchPilots = self.pilots.filter(function(pilot){
             return pilot.name===self.assessment.pilot;
@@ -862,13 +872,18 @@ angular.module('workspaceApp')
           self.$http.post(self.api+'/api/assessments/mobile', self.assessment)
             .then(function(response){
               self.alertSubmitSuccess();
+              self.submitDisabled=false;
             },
             function(response){
-              if (response.status===501) self.promptForPassword();
+              if (response.status===501) {
+                self.promptForPassword();
+                self.submitDisabled=false;
+              }
               else {
                 self.localAssessments.push(self.assessment);
                 window.localStorage.setItem( 'assessments', JSON.stringify(self.localAssessments) );
                 self.alertSubmitSuccess();
+                self.submitDisabled=false;
               }
             }
           );
@@ -946,14 +961,14 @@ angular.module('workspaceApp')
       self.timeout(function(){
         self.mdSidenav('left').toggle();
       },400);
-    }
+    };
     
     self.pixelRatio=function(ratio){
       if (Math.floor(window.devicePixelRatio)===ratio) return true;
       if (window.devicePixelRatio>3&&ratio===3) return true;
       if (window.devicePixelRatio<1&&ratio===1) return true;
       return false;
-    }
+    };
     
     self.checkPilot=function(name){
       return name===self.tempPilot.name;
@@ -965,12 +980,9 @@ angular.module('workspaceApp')
       return 'None';
     };
 
-  
       self.scrapeStorage();
-          $interval(function(){
-            self.scrapeStorage();
-          },1800000);//each 30 minutes
-      
+      self.scrape;
+      self.fourteenHours;
       self.init();
     
   }

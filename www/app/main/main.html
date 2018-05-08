@@ -164,7 +164,7 @@
       <md-button class="md-raised md-blue" flex ng-click="main.addComment($event)">Assessment <br>Comment</md-button>
       <md-button class="md-raised md-purple" flex ng-click="main.changeFlight($event)">Refresh<br> Assessment</md-button>
       <md-button class="md-raised md-accent" flex ng-click="main.clear()">Clear<br> Assessment</md-button>
-      <md-button class="md-raised md-primary" flex ng-click="main.submit($event)">Submit<br> Assessment</md-button>
+      <md-button class="md-raised md-primary" flex ng-click="main.submit($event)" ng-disabled="main.submitDisabled">Submit<br> Assessment</md-button>
     </div>
   </div>
 </div>
