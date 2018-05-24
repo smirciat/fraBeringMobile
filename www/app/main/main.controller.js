@@ -135,7 +135,7 @@ angular.module('workspaceApp')
         if (departTime.isBetween(twilightStart,twilightEnd)) self.assessment.night[index]=false;
         else self.assessment.night[index]=true;
       });  
-    }
+    };
     
     self.initAirport=function(airport,index,count) {
       count++;
@@ -288,7 +288,7 @@ angular.module('workspaceApp')
           else self.assessment.tafs[index]="";
         });
       }
-    }
+    };
     
     self.parseADDS=function(metar){
       var self=this;
@@ -326,13 +326,13 @@ angular.module('workspaceApp')
         if (self.testSky(unknown)) {
           var cloudArr=[];
           cloudArr.push(unknown.substring(0,3));
-          if (cloudArr[0].substring(0.3)!=="CLR") {
-            if (cloudArr[0].substring(0.2)==="VV") {
+          if (cloudArr[0].substring(0,3)!=="CLR") {
+            if (cloudArr[0].substring(0,2)==="VV") {
               cloudArr[0]="VV";
-              cloudArr.push(unknown.substring(2))
+              cloudArr.push(unknown.substring(2));
             }
             else {
-              cloudArr.push(unknown.substring(3))
+              cloudArr.push(unknown.substring(3));
             }
           }
           obs['Cloud-List'].push(cloudArr);
@@ -348,13 +348,14 @@ angular.module('workspaceApp')
       obs.Temperature=obs.tempDew.split('/')[0];
       if (obs.Temperature.substring(0,1)==="M") obs.Temperature="-" + obs.Temperature.substring(1);
       return obs;
-    }
+    };
     
     self.testSky=function(str) {
+      str=str.toUpperCase();
       var skyArr=["VV","CL","FE","BK","OV","SC"];
       if (skyArr.indexOf(str.substring(0,2))<0) return false;
       return true;
-    }
+    };
     
     self.init=function(){
       
@@ -574,32 +575,34 @@ angular.module('workspaceApp')
     
     self.addComment=function(ev){
       var self=this;
-      var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
-        .parent(angular.element(document.body))
-        .title('Add Assessment Comment')
-        .textContent('Enter a comment to go with this assessment.')
-        .placeholder('comment')
-        .ariaLabel('comment')
-        .initialValue(self.assessment.comment)
-        .targetEvent(ev)
-        .required(true)
-        .ok('OK')
-        .cancel('Cancel');
-          
-      self.mdDialog.show(confirm).then(function(result) {
-        if (result!==""){
-          self.assessment.comment=result;
-          var alert = self.mdDialog.alert({
-            title: 'Success!',
-            textContent: 'You successfully added a comment to this assessment.',
-            ok: 'OK'
-          });
-              
-          self.mdDialog.show(alert).then(function() {
+      self.timeout(function(){
+        var confirm = self.mdDialog.prompt({clickOutsideToClose: true})
+          .parent(angular.element(document.body))
+          .title('Add Assessment Comment')
+          .textContent('Enter a comment to go with this assessment.')
+          .placeholder('comment')
+          .ariaLabel('comment')
+          .initialValue(self.assessment.comment)
+          .targetEvent(ev)
+          .required(true)
+          .ok('OK')
+          .cancel('Cancel');
             
-          });
-        }
-      });
+        self.mdDialog.show(confirm).then(function(result) {
+          if (result!==""){
+            self.assessment.comment=result;
+            var alert = self.mdDialog.alert({
+              title: 'Success!',
+              textContent: 'You successfully added a comment to this assessment.',
+              ok: 'OK'
+            });
+                
+            self.mdDialog.show(alert).then(function() {
+              
+            });
+          }
+        });
+      },400);
     };
     
     self.changeFreezing=function(ev,index){
@@ -717,25 +720,25 @@ angular.module('workspaceApp')
       });
       if (airportsArr.length>0) return airportsArr[0];
       else return {icao:icao,name:icao,visibilityRequirement:{"yellow":3,"red":0.5,"ifr":2,"night":5},ceilingRequirement:{"yellow":1000,"red":280,"ifr":1000,"night":3000}};
-    }
+    };
     
     self.airportClass=function(index){
       
       if (self.assessment.metars[index]==="") return "md-blue";
       return "md-green";
-    }
+    };
     
     self.red=function(i){
       
       self.assessment.color[i]='md-red';
       return 'md-red';
-    }
+    };
     
     self.yellow=function(i){
       
       if (self.assessment.color[i]!=='md-red') self.assessment.color[i]='md-yellow';
       return 'md-yellow';
-    }
+    };
     
     self.orange=function(i){
       
@@ -768,7 +771,7 @@ angular.module('workspaceApp')
       }
       
       return self.green(index);
-    }
+    };
     
     self.ceilingClass=function(index){
       
@@ -955,7 +958,7 @@ angular.module('workspaceApp')
           });
       },400);
       
-    }
+    };
     
     self.toggleMenu=function(){
       self.timeout(function(){
