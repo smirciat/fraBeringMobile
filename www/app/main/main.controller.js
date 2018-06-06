@@ -292,6 +292,7 @@ angular.module('workspaceApp')
     
     self.parseADDS=function(metar){
       var self=this;
+      var temp="";
       var obs={};
       obs['Raw-Report']=metar;
       var metarArray=metar.split(' ');
@@ -307,7 +308,15 @@ angular.module('workspaceApp')
       else obs['Wind-Gust']="";
       obs.vis=metarArray.shift();//visibility
       if (obs.vis.split('V').length>1&&obs.vis.split('V')[0].length===3&&obs.vis.split('V')[1].length===3) obs.vis=metarArray.shift();//variable winds, ignore
-      if (obs.vis.slice(-2)!=="SM") obs.vis = obs.vis + ' ' + metarArray.shift();//this covers visibilities such as "1 3/4SM"
+      if (obs.vis.slice(-2)!=="SM") {
+        temp=metarArray.shift();
+        if (temp.slice(-2)==="SM") obs.vis = obs.vis + ' ' + temp;//this covers visibilities such as "1 3/4SM"
+        else {
+          metarArray.unshift(temp);
+          metarArray.unshift(obs.vis);
+          obs.vis="";
+        }
+      }
       var visArray=obs.vis.split('/');
       if (visArray.length>1) obs.Visibility=visArray[0].replace(/[^0-9 ]/g, '') + '/' + visArray[1].replace(/[^0-9]/g, '');
       else obs.Visibility=obs.vis.replace(/[^0-9]/g, '');//remove leading M and trailing SM
