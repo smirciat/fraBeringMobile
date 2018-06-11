@@ -397,7 +397,7 @@ angular.module('workspaceApp')
       self.timeout(function(){
         if (!self.assessment.flight||self.assessment.flight==="") return;
         if ((self.assessment.flight.substring(0,2)==="85"||self.assessment.flight.substring(1,3)==="85")
-            &&self.assessment.equipmentObj.name==="Caravan") {
+            &&self.assessment.flight!=="685"&&self.assessment.flight!=="885"&&self.assessment.equipmentObj.name==="Caravan") {
           self.assessment={};
           self.initAssessment();
           self.caravanAlert();
