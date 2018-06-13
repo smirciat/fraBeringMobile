@@ -98,6 +98,7 @@ angular.module('workspaceApp')
     
     self.initAssessment=function(){
       self.timeout.cancel(self.timer);
+      self.isSubmitted=false;
       var airports,pilot,flight,equipment,color,night,times;
       if (self.assessment) {
         pilot=self.assessment.pilotObj||"";
@@ -848,7 +849,6 @@ angular.module('workspaceApp')
     
     self.submit=function(ev){
       self.timeout(function(){
-      
         self.assessment.equipment=self.assessment.equipmentObj.name;
         if (!self.assessment||
                !self.assessment.pilotObj||
@@ -870,6 +870,7 @@ angular.module('workspaceApp')
         }
         else {
           self.submitDisabled=true;
+          self.isSubmitted=true;
           self.assessment.pilot=self.assessment.pilotObj.name;
           var matchPilots = self.pilots.filter(function(pilot){
             return pilot.name===self.assessment.pilot;
@@ -986,6 +987,10 @@ angular.module('workspaceApp')
       return name===self.tempPilot.name;
     };
     
+    self.checkSubmitted=function(){
+      if (self.isSubmitted) return "submitted";
+      else return;
+    };
     
     self.freezeResult=function(bool){
       if (bool) return 'Yes';
