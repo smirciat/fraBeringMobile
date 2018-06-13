@@ -234,8 +234,8 @@ angular.module('workspaceApp')
           }
         }
       });
-      if (airport.toUpperCase()=="PAOM"||airport.toUpperCase()=="PAOT"||
-          airport.toUpperCase()=="PAUN"||airport.toUpperCase()=="PANC"||airport.toUpperCase()=="PAGA") {
+      if (true){//airport.toUpperCase()=="PAOM"||airport.toUpperCase()=="PAOT"||airport.toUpperCase()=="PAFA"||
+          //airport.toUpperCase()=="PAUN"||airport.toUpperCase()=="PANC"||airport.toUpperCase()=="PAGA") {
         self.$http.get('https://avwx.rest/api/taf/' + airport).then(function(response){
           if (response.data.Error) { 
             //self.airports[index]=self.airportsCopy[index];
