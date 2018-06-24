@@ -90,7 +90,7 @@ md-sidenav.md-closed.md-locked-open-add-active {
 .box-shadow-menu {
   position: relative;
   padding-left: 1.25em;
-  font-size:150%;
+  font-size:175%;
 }
 .box-shadow-menu:before {
   content: "";
