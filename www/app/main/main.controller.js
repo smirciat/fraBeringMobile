@@ -187,13 +187,17 @@ angular.module('workspaceApp')
           self.assessment.windDirections[index]=metarObj['Wind-Direction'];
           //crosswind limit
           var ap = self.getAirport(self.assessment.airports[index]);
-          var xwindAngle=90;
-          var direction=parseInt(self.assessment.windDirections[index],10);
-          ap.runways.forEach(function(runway){
-            if (Math.abs(direction-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-runway*10);
-            if (Math.abs(direction+360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction+360-runway*10);
-            if (Math.abs(direction-360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-360-runway*10);
-          });
+          var xwindAngle=0;
+          var direction=0;
+          if (ap.runways) {
+            xwindAngle=90;
+            direction=parseInt(self.assessment.windDirections[index],10);
+            ap.runways.forEach(function(runway){
+              if (Math.abs(direction-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-runway*10);
+              if (Math.abs(direction+360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction+360-runway*10);
+              if (Math.abs(direction-360-runway*10)<xwindAngle) xwindAngle = Math.abs(direction-360-runway*10);
+            });
+          }
           self.assessment.crossWinds[index] = Math.round(self.assessment.windGusts[index]*Math.sin(xwindAngle*(Math.PI/180)));
           self.assessment.visibilities[index]=metarObj.Visibility;
           if (self.assessment.visibilities[index].includes('/')) {
@@ -237,7 +241,7 @@ angular.module('workspaceApp')
       });
       if (true){//airport.toUpperCase()=="PAOM"||airport.toUpperCase()=="PAOT"||airport.toUpperCase()=="PAFA"||
           //airport.toUpperCase()=="PAUN"||airport.toUpperCase()=="PANC"||airport.toUpperCase()=="PAGA") {
-        self.$http.get('https://avwx.rest/api/taf/' + airport).then(function(response){
+        self.$http.get('https://avwx.rest/api/taf/' + airport.toUpperCase()).then(function(response){
           if (response.data.Error) { 
             //self.airports[index]=self.airportsCopy[index];
             return;
